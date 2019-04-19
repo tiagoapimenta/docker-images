@@ -1,0 +1,104 @@
+#!/bin/sh
+
+set -e
+
+atexit() {
+	local ec=$?
+	if [ -n "$tmp" -a -e "$tmp" ]; then
+		rm -rf "$tmp"
+	fi
+	docker images -q -fdangling=true | xargs -r docker rmi
+	exit $ec
+}
+
+trap atexit EXIT INT TERM
+
+dir=$(dirname "$0")
+fulldir=$(readlink -f "$dir")
+image=$(basename "$fulldir")
+
+if [ "$image" = .common ]; then
+	printf 'Please run some image!\n' >&2
+	exit 1
+fi
+
+cache="$(dirname "$fulldir")/.cache"
+data="$cache/$image"
+uid=$(id -u)
+gid=$(id -g)
+
+alpine=latest
+
+if [ ! -d "$data" ]; then
+	mkdir -p "$data"
+fi
+
+date=$(date +%F)
+last=
+if [ -s "$cache/alpine" ]; then
+	read -r alpine < "$cache/alpine"
+	last=$(date -r "$cache/alpine" +%F)
+fi
+
+# https://registry.hub.docker.com/v2/repositories/library/alpine/tags/
+# https://registry.hub.docker.com/v1/repositories/alpine/tags
+
+if [ "$date" != "$last" ]; then
+	docker \
+		run \
+		--rm \
+		-i \
+		-v "$cache:/data" \
+		--user "$uid:$gid" \
+		"alpine:$alpine" \
+		sh -se <<\EOF
+wget -qO- 'https://registry.hub.docker.com/v1/repositories/alpine/tags' |
+	sed -r 's/\s*\[?\s*\{[^}]*"name"\s*:\s*"([^"]*)"[^}]*\}\s*[],]?\s*/\1\n/g' |
+	awk -F. '
+int($1) == $1 && length($1) < 8 {
+	n = split(version, arr, /\./)
+	ok = 0
+	m = n
+	if (m < NF) {
+		m = NF
+	}
+	for (i = 1; i <= m && ok == 0; i++) {
+		v0 = 0
+		if (i <= n) {
+			v0 = arr[i]
+		}
+		v1 = 0
+		if (i <= m) {
+			v1 = $i
+		}
+		if (v0 < v1) {
+			ok = 1
+		} else if (v0 > v1) {
+			ok = -1
+		}
+	}
+	if (ok > 0) {
+		version = $0
+	}
+} END {
+	print version
+}
+' > /data/alpine
+EOF
+
+	if [ -s "$cache/alpine" ]; then
+		read -r alpine < "$cache/alpine"
+	fi
+fi
+
+check() {
+	:
+}
+
+prebuild() {
+	:
+}
+
+build() {
+	:
+}

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# based on https://github.com/docker-library/openjdk/blob/master/8/jre/alpine/Dockerfile
+
+set -e
+
+. "$(dirname "$0")/../.common/fn"
+
+if check; then
+	prebuild
+
+	build
+fi

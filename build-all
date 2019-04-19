@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+
+dir=$(dirname "$0")
+
+for image in \
+	jdk \
+	jre \
+	jenkins \
+	dropbear \
+	jenkins-mvn \
+	dropbear-mvn \
+	nexus \
+	sonar \
+	gitlab \
+	prometheus \
+	alertmanager \
+	blackbox-exporter \
+	node-exporer \
+	grafana \
+	elasticsearch \
+	logstash \
+	kibana
+do
+	if [ -x "$dir/$image/build" ]; then
+		printf 'Building %s...\n' "$image"
+		"$dir/$image/build"
+	fi
+done
