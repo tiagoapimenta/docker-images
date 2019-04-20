@@ -6,8 +6,17 @@ set -e
 
 . "$(dirname "$0")/../.common/fn"
 
-if check; then
-	prebuild
+check <<\EOF
+version=$(apk search --no-cache openjdk8-jre-base | awk '
+$1 != "fetch" && /^openjdk8-jre-base-/ {
+	sub(/^openjdk8-jre-base-/, "")
+	print
+}
+')
+EOF
 
-	build
-fi
+build <<EOF
+FROM alpine:$alpine
+
+RUN apk add --no-cache openjdk8-jre-base
+EOF

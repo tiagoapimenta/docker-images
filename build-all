@@ -5,10 +5,10 @@ set -e
 dir=$(dirname "$0")
 
 for image in \
-	jdk \
 	jre \
 	jenkins \
 	dropbear \
+	jdk \
 	jenkins-mvn \
 	dropbear-mvn \
 	nexus \

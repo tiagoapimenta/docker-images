@@ -2,6 +2,8 @@
 
 set -e
 
+base=docker.io/tpimenta
+
 atexit() {
 	local ec=$?
 	if [ -n "$tmp" -a -e "$tmp" ]; then
@@ -91,8 +93,56 @@ EOF
 	fi
 fi
 
+version=
+if [ -s "$data/version" ]; then
+	read -r version < "$data/version"
+fi
+
+md5=
+if [ -s "$data/md5" ]; then
+	read -r md5 < "$data/md5"
+fi
+
+newversion=
+newmd5=
+
 check() {
-	:
+	docker \
+		run \
+		--rm \
+		-i \
+		-v "$data:/data" \
+		--user "$uid:$gid" \
+		"alpine:$alpine" \
+		sh -se <<EOF
+$(cat)
+
+if [ -n "\$version" ]; then
+	printf '%s\\n' "\$version" > /data/newversion
+fi
+
+if [ -n "\$md5" ]; then
+	printf '%s\\n' "\$md5" > /data/newmd5
+fi
+EOF
+
+	if [ -s "$data/newversion" ]; then
+		read -r newversion < "$data/newversion"
+	fi
+
+	if [ -s "$data/newmd5" ]; then
+		read -r newmd5 < "$data/newmd5"
+	fi
+
+	if [ -z "$newversion" -a -z "$newmd5" ]; then
+		printf 'Unable to compute new version!\n' >&2
+		exit 1
+	fi
+
+	if [ "$version" = "$newversion" -a "$md5" = "$newmd5" ]; then
+		printf 'No update required!\n' >&2
+		exit
+	fi
 }
 
 prebuild() {
@@ -100,5 +150,27 @@ prebuild() {
 }
 
 build() {
-	:
+	local remote="$base/$image:$newversion" latest="$base/$image:latest"
+
+	tmp=$(mktemp -d)
+	cat > "$tmp/Dockerfile"
+
+	docker \
+		build \
+		--no-cache \
+		--force-rm \
+		--tag "$remote" \
+		"$tmp"
+
+	docker push "$remote"
+	docker tag "$remote" "$latest"
+	docker push "$latest"
+
+	if [ -s "$data/newversion" ]; then
+		mv "$data/newversion" "$data/version"
+	fi
+
+	if [ -s "$data/newmd5" ]; then
+		mv "$data/newmd5" "$data/md5"
+	fi
 }
