@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# based on https://github.com/docker-library/openjdk/blob/master/8/jdk/alpine/Dockerfile
+
+set -e
+
+. "$(dirname "$0")/../.common/fn"
+
+check <<\EOF
+version=$(apk search --no-cache openjdk8 | awk '
+$1 != "fetch" && /^openjdk8-8/ {
+	sub(/^openjdk8-/, "")
+	print
+}
+')
+EOF
+
+build <<EOF
+FROM alpine:$alpine
+
+RUN apk add --no-cache openjdk8
+EOF

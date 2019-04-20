@@ -140,6 +140,12 @@ EOF
 	fi
 
 	if [ "$version" = "$newversion" -a "$md5" = "$newmd5" ]; then
+		if [ -f "$data/newversion" ]; then
+			unlink "$data/newversion"
+		fi
+		if [ -f "$data/newmd5" ]; then
+			unlink "$data/newmd5"
+		fi
 		printf 'No update required!\n' >&2
 		exit
 	fi
