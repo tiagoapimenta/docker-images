@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# based on https://github.com/jenkinsci/docker/blob/master/Dockerfile-alpine
+
+set -e
+
+. "$(dirname "$0")/../.common/fn"
+
+# http://mirrors.jenkins.io/war-stable/latest/jenkins.war
+# https://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war/
+# https://updates.jenkins.io/current/update-center.json
+# https://updates.jenkins.io/stable/latestCore.txt
+
+check <<\EOF
+version=$(wget -qO- http://updates.jenkins.io/stable/latestCore.txt)
+EOF
+
+depends jre
+
+prebuild <<\EOF
+tmp=$(mktemp -d)
+
+wget -P "$tmp" http://updates.jenkins.io/stable/latest/jenkins.war
+
+mkdir -p "$tmp/root/usr/share/jenkins"
+
+install -o 0 -g 0 -m 644 "$tmp/jenkins.war" "$tmp/root/usr/share/jenkins/jenkins.war"
+
+install -o 500 -g 500 -m 755 -d "$tmp/root/jenkins"
+
+tar cpvf "$tmp/root.tar" -C "$tmp/root" usr jenkins
+
+install -o "$uid" -g "$gid" -m 644 "$tmp/root.tar" /data
+EOF
+
+build <<EOF
+FROM $base/jre:$version_jre
+
+RUN apk add --no-cache nss
+
+ADD root.tar /
+
+VOLUME /jenkins
+
+WORKDIR /jenkins
+
+USER 500:500
+
+EXPOSE 8080
+
+ENTRYPOINT [ \
+	"java", \
+	"-Duser.home=/jenkins", \
+	"-Djava.awt.headless=true", \
+	"-jar", \
+	"/usr/share/jenkins/jenkins.war", \
+	"--httpPort=8080" \
+]
+EOF

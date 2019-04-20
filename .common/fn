@@ -2,7 +2,8 @@
 
 set -e
 
-base=docker.io/tpimenta
+repository=docker.io
+base=tpimenta
 
 atexit() {
 	local ec=$?
@@ -151,15 +152,54 @@ EOF
 	fi
 }
 
+depends() {
+	local name="$1"
+	if [ ! -s "$cache/$name/version" ]; then
+		if [ ! -x "$dir/../$name/build" ]; then
+			printf 'Unable to build dependency %s!\n' "$name" >&2
+			exit 1
+		fi
+		"$dir/../$name/build"
+		if [ ! -s "$cache/$name/version" ]; then
+			printf 'Unable to compute dependency %s version!\n' "$name" >&2
+			exit 1
+		fi
+	fi
+	read -r "version_$name" < "$cache/$name/version"
+}
+
 prebuild() {
-	:
+	docker \
+		run \
+		--rm \
+		-i \
+		-v "$data:/data" \
+		"alpine:$alpine" \
+		sh -se "$uid" "$gid" <<EOF
+uid=\$1
+gid=\$2
+
+atexit() {
+	local ec=\$?
+	if [ -n "\$tmp" -a -e "\$tmp" ]; then
+		rm -rf "\$tmp"
+	fi
+	exit \$ec
+}
+
+$(cat)
+EOF
 }
 
 build() {
-	local remote="$base/$image:$newversion" latest="$base/$image:latest"
+	local remote="$repository/$base/$image:$newversion" latest="$repository/$base/$image:latest"
 
 	tmp=$(mktemp -d)
 	cat > "$tmp/Dockerfile"
+
+	if [ -s "$data/root.tar" ]; then
+		cp "$data/root.tar" "$tmp/root.tar"
+	fi
 
 	docker \
 		build \
