@@ -192,12 +192,13 @@ EOF
 }
 
 build() {
-	local remote="$repository/$base/$image:$newversion" latest="$repository/$base/$image:latest"
+	local remote="$repository/$base/$image:$newversion" latest="$repository/$base/$image:latest" copy=0
 
 	tmp=$(mktemp -d)
 	cat > "$tmp/Dockerfile"
 
 	if [ -s "$data/root.tar" ]; then
+		copy=1
 		cp "$data/root.tar" "$tmp/root.tar"
 	fi
 
@@ -218,5 +219,9 @@ build() {
 
 	if [ -s "$data/newmd5" ]; then
 		mv "$data/newmd5" "$data/md5"
+	fi
+
+	if [ $copy -ne 0 ]; then
+		unlink "$data/root.tar"
 	fi
 }

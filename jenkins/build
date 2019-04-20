@@ -22,11 +22,25 @@ tmp=$(mktemp -d)
 
 wget -P "$tmp" http://updates.jenkins.io/stable/latest/jenkins.war
 
-mkdir -p "$tmp/root/usr/share/jenkins"
+mkdir -p "$tmp/root/usr/share/jenkins" "$tmp/root/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64/"
 
 install -o 0 -g 0 -m 644 "$tmp/jenkins.war" "$tmp/root/usr/share/jenkins/jenkins.war"
 
 install -o 500 -g 500 -m 755 -d "$tmp/root/jenkins"
+
+cd "$tmp"
+
+apk fetch --no-cache openjdk8-jre
+
+cd -
+
+pack=$(find "$tmp" -maxdepth 1 -mindepth 1 -name '*.apk' | head -n1)
+
+mkdir "$tmp/pack"
+
+tar xvf "$pack" -C "$tmp/pack"
+
+mv -v "$tmp/pack/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64/libfontmanager.so" "$tmp/root/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64/"
 
 tar cpvf "$tmp/root.tar" -C "$tmp/root" usr jenkins
 
@@ -36,7 +50,7 @@ EOF
 build <<EOF
 FROM $base/jre:$version_jre
 
-RUN apk add --no-cache nss
+RUN apk add --no-cache nss ttf-dejavu
 
 ADD root.tar /
 
