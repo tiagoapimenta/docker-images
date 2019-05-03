@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# based on https://git.alpinelinux.org/aports/tree/main/dropbear/APKBUILD
+
+set -e
+
+. "$(dirname "$0")/../.common/fn"
+
+check <<\EOF
+version=$(apk search --no-cache dropbear | awk '
+$1 != "fetch" && /^dropbear-[0-9]/ {
+	sub(/^dropbear-/, "")
+	print
+}
+')
+EOF
+
+build <<EOF
+FROM alpine:$alpine
+
+RUN apk add --no-cache dropbear dropbear-scp
+
+EXPOSE 22
+
+ENTRYPOINT [ \
+	"dropbear", \
+	"-R", \
+	"-F", \
+	"-E", \
+	"-w", \
+	"-p", "22", \
+	"-K", "300" \
+]
+EOF
