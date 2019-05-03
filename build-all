@@ -5,15 +5,20 @@ set -e
 dir=$(dirname "$0")
 
 for image in \
+	make \
+	dnsmasq \
+	ntpd \
+	ldap \
+	squid \
+	gitlab \
 	jre \
+	nexus \
 	jenkins \
 	dropbear \
 	jdk \
 	jenkins-mvn \
 	dropbear-mvn \
-	nexus \
 	sonar \
-	gitlab \
 	prometheus \
 	alertmanager \
 	blackbox-exporter \
@@ -21,7 +26,16 @@ for image in \
 	grafana \
 	elasticsearch \
 	logstash \
-	kibana
+	kibana \
+	postgresql \
+	ssdb \
+	hbase \
+	scylladb \
+	gluster \
+	heketi \
+	nuster \
+	metallb \
+	ansible
 do
 	if [ -x "$dir/$image/build" ]; then
 		printf 'Building %s...\n' "$image"

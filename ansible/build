@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# based on https://github.com/woahbase/alpine-ansible
+
+set -e
+
+. "$(dirname "$0")/../.common/fn"
+
+check <<\EOF
+version=$(apk search --no-cache ansible | awk '
+$1 != "fetch" && /^ansible-[0-9]/ {
+	sub(/^ansible-/, "")
+	print
+}
+')
+EOF
+
+build <<EOF
+FROM alpine:$alpine
+
+RUN apk add --no-cache ansible
+EOF
